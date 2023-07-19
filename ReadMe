@@ -1,0 +1,4 @@
+#To start this three.js application be in the same file chain as the thing you are trying to exicute
+then in console type  npx vite it will then start a local server.
+
+#Highly recomend running it alone it tends to be hungy for that CPU space.
