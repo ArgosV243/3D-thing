@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import * as CANNON from 'cannon-es';
 
 function main() {
   const canvas = document.querySelector('#c');
@@ -29,12 +30,10 @@ function main() {
 
   const scene = new THREE.Scene();
 
-  const myScene = scene;
-
   // Background image texture
   const loader = new THREE.TextureLoader();
   loader.load('./skybox.jpg', (backgroundImage) => {
-    myScene.background = backgroundImage;
+    scene.background = backgroundImage;
 
     // The cube
     const materials = [
@@ -50,12 +49,130 @@ function main() {
     scene.add(cube);
 
     // The floor
-    const floorGeometry = new THREE.PlaneGeometry(40, 40); // Floor size 
+    const floorSize = 40;
+    const floorGeometry = new THREE.BoxGeometry(floorSize, 0.1, floorSize); // Floor size 
     const floorTexture = loader.load('./touchgrass.jpg'); // Floor texture
     const floorMaterial = new THREE.MeshBasicMaterial({ map: floorTexture });
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.rotation.x = -Math.PI / 2; // Flat floor
+    floor.position.y = -0.5;
     scene.add(floor);
+
+    // The obstacles
+    const obstacleSize = 2;
+    const obstacleGeometry = new THREE.BoxGeometry(obstacleSize, obstacleSize, obstacleSize);
+    const obstacleTexture = loader.load('./mr-world.jpg');
+    const obstacleMaterial = new THREE.MeshBasicMaterial({ map: obstacleTexture });
+    
+    const obstacle1 = new THREE.Mesh(obstacleGeometry, obstacleMaterial);
+    obstacle1.position.set(-5, 1, 5);
+    scene.add(obstacle1);
+    
+    const obstacle2 = new THREE.Mesh(obstacleGeometry, obstacleMaterial);
+    obstacle2.position.set(5, 1, 5);
+    scene.add(obstacle2);
+    
+    const obstacle3 = new THREE.Mesh(obstacleGeometry, obstacleMaterial);
+    obstacle3.position.set(0, 1, -5);
+    scene.add(obstacle3);
+    
+    
+    // The border wall
+    const borderThickness = 0.1;
+    const borderGeometry = new THREE.BoxGeometry(floorSize + borderThickness * 2, 2, floorSize + borderThickness * 2);
+    const borderTexture = loader.load('./border_texture.png');//placeholder border overlays grass
+    const borderMaterial = new THREE.MeshStandardMaterial({ map: borderTexture, transparent: true, alphaTest: 0.5 });
+
+    const borderWall = new THREE.Mesh(borderGeometry, borderMaterial);
+    borderWall.position.y = -1 - borderThickness;
+    scene.add(borderWall);
+
+    const world = new CANNON.World();
+    // world.gravity.set(0, -9.82, 0);
+    world.gravity.set(0, -17.82, 0);
+
+    // The cube
+    const cubeShape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5));
+    const cubeBody = new CANNON.Body({ mass: 1 });
+    cubeBody.addShape(cubeShape);
+    cubeBody.position.set(0, 2, 0); // Set cube initial position on top of the floor
+    world.addBody(cubeBody);
+
+    // The floor
+    const floorShape = new CANNON.Box(new CANNON.Vec3(floorSize / 2, 0.1, floorSize / 2));
+    const floorBody = new CANNON.Body({ mass: 0 });
+    floorBody.addShape(floorShape);
+    floorBody.position.set(0, 0.01, 0);
+    world.addBody(floorBody);
+
+    // The obstacles
+    const obstacleShape = new CANNON.Box(new CANNON.Vec3(obstacleSize / 2, obstacleSize / 2, obstacleSize / 2));
+
+    const obstacle1Body = new CANNON.Body({ mass: 0 });
+    obstacle1Body.addShape(obstacleShape);
+    obstacle1Body.position.set(-5, 1, 5);
+    world.addBody(obstacle1Body);
+
+    const obstacle2Body = new CANNON.Body({ mass: 0 });
+    obstacle2Body.addShape(obstacleShape);
+    obstacle2Body.position.set(5, 1, 5);
+    world.addBody(obstacle2Body);
+
+    const obstacle3Body = new CANNON.Body({ mass: 0 });
+    obstacle3Body.addShape(obstacleShape);
+    obstacle3Body.position.set(0, 1, -5);
+    world.addBody(obstacle3Body);
+
+    // The border wall
+    const borderShape = new CANNON.Box(new CANNON.Vec3(floorSize / 2 + borderThickness, 1, floorSize / 2 + borderThickness));
+
+    const borderWallBody = new CANNON.Body({ mass: 0 });
+    borderWallBody.addShape(borderShape);
+    borderWallBody.position.set(0, -1 - borderThickness, 0);
+    world.addBody(borderWallBody);
+
+    //this is here to prevent the cube from passing through the floor
+    const cubeFloorContact = new CANNON.ContactMaterial(floorShape, cubeShape, {
+      friction: 1.0,
+      restitution: 1.0,
+    });
+    world.addContactMaterial(cubeFloorContact);
+
+    const moveSpeed = 2.0;
+    const jumpForce = 5;
+    const moveVector = new THREE.Vector3();
+    const jumpVector = new THREE.Vector3(0, jumpForce, 0);
+    let isJumping = false;
+
+    function handleKeyDown(event) {
+      if (event.repeat) return;
+      const keyCode = event.code;
+      if (keyCode === 'KeyW') {
+        moveVector.z = -moveSpeed;
+      } else if (keyCode === 'KeyA') {
+        moveVector.x = -moveSpeed;
+      } else if (keyCode === 'KeyS') {
+        moveVector.z = moveSpeed;
+      } else if (keyCode === 'KeyD') {
+        moveVector.x = moveSpeed;
+      } else if (keyCode === 'Space' && !isJumping) {
+        cubeBody.applyImpulse(jumpVector, cubeBody.position);
+        isJumping = true;
+      }
+    }
+
+    function handleKeyUp(event) {
+      const keyCode = event.code;
+      if (keyCode === 'KeyW' || keyCode === 'KeyS') {
+        moveVector.z = 0;
+      } else if (keyCode === 'KeyA' || keyCode === 'KeyD') {
+        moveVector.x = 0;
+      } else if (keyCode === 'Space') {
+        isJumping = false;
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
 
     function animate() {
       requestAnimationFrame(animate);
@@ -63,9 +180,23 @@ function main() {
       cube.rotation.x += 0.00;
       cube.rotation.y += 0.00;
 
-      // Floor position to match the cube position
-      floor.position.copy(cube.position);
-      floor.position.setY(-1.0); // Floor height adjustment
+      //cube constraint
+      cubeBody.position.x = Math.max(-floorSize / 2 + borderThickness + 0.5, Math.min(floorSize / 2 - borderThickness - 0.5, cubeBody.position.x));
+      cubeBody.position.z = Math.max(-floorSize / 2 + borderThickness + 0.5, Math.min(floorSize / 2 - borderThickness - 0.5, cubeBody.position.z));
+
+      cubeBody.velocity.x = moveVector.x;
+      cubeBody.velocity.z = moveVector.z;
+
+      cube.position.copy(cubeBody.position);
+      cube.quaternion.copy(cubeBody.quaternion);
+
+      world.step(1 / 60);
+
+      if (resizeRendererToDisplaySize()) {
+        const canvas = renderer.domElement;
+        camera.aspect = canvas.clientWidth / canvas.clientHeight;
+        camera.updateProjectionMatrix();
+      }
 
       renderer.render(scene, camera);
     }
@@ -73,20 +204,12 @@ function main() {
     animate();
   });
 
-  function render() {
-
-    if (resizeRendererToDisplaySize()) {
-      const canvas = renderer.domElement;
-      camera.aspect = canvas.clientWidth / canvas.clientHeight;
-      camera.updateProjectionMatrix();
-    }
-
-    renderer.render(scene, camera);
-
-    requestAnimationFrame(render);
+  window.addEventListener('resize', onWindowResize, false);
+  function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
   }
-
-  requestAnimationFrame(render);
 }
 
 main();
