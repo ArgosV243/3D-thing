@@ -19,7 +19,7 @@ function main() {
 
   const fov = 50;
   const aspect = window.innerWidth / window.innerHeight; // window aspect ratio
-  const near = 0.1;
+  const near = 1.0;
   const far = 200;
   const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
   camera.position.set(0, 1, 10); // Y-axis movement
@@ -32,17 +32,17 @@ function main() {
 
   // Background image texture
   const loader = new THREE.TextureLoader();
-  loader.load('./skybox.jpg', (backgroundImage) => {
+  loader.load('./assets/skybox.jpg', (backgroundImage) => {
     scene.background = backgroundImage;
 
     // The cube
     const materials = [
-      new THREE.MeshBasicMaterial({ map: loader.load('./doom-face-doomguy.gif') }),
-      new THREE.MeshBasicMaterial({ map: loader.load('./IMG_1384.JPG') }),
-      new THREE.MeshBasicMaterial({ map: loader.load('./cPU.PNG') }),
-      new THREE.MeshBasicMaterial({ map: loader.load('./image.png') }),
-      new THREE.MeshBasicMaterial({ map: loader.load('./gman.jpg') }),
-      new THREE.MeshBasicMaterial({ map: loader.load('./hecucpt.jpg') })
+      new THREE.MeshBasicMaterial({ map: loader.load('./assets/doom-face-doomguy.gif') }),
+      new THREE.MeshBasicMaterial({ map: loader.load('./assets/IMG_1384.JPG') }),
+      new THREE.MeshBasicMaterial({ map: loader.load('./assets/cPU.PNG') }),
+      new THREE.MeshBasicMaterial({ map: loader.load('./assets/image.png') }),
+      new THREE.MeshBasicMaterial({ map: loader.load('./assets/gman.jpg') }),
+      new THREE.MeshBasicMaterial({ map: loader.load('./assets/hecucpt.jpg') })
     ];
     const geometry = new THREE.BoxGeometry(2, 2, 2);
     const cube = new THREE.Mesh(geometry, materials);
@@ -51,7 +51,7 @@ function main() {
     // The floor
     const floorSize = 40;
     const floorGeometry = new THREE.BoxGeometry(floorSize, 0.1, floorSize); // Floor size 
-    const floorTexture = loader.load('./touchgrass.jpg'); // Floor texture
+    const floorTexture = loader.load('./assets/touchgrass.jpg'); // Floor texture
     const floorMaterial = new THREE.MeshBasicMaterial({ map: floorTexture });
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
     floor.position.y = -0.5;
@@ -60,7 +60,7 @@ function main() {
     // The obstacles
     const obstacleSize = 2;
     const obstacleGeometry = new THREE.BoxGeometry(obstacleSize, obstacleSize, obstacleSize);
-    const obstacleTexture = loader.load('./mr-world.jpg');
+    const obstacleTexture = loader.load('./assets/mr-world.jpg');
     const obstacleMaterial = new THREE.MeshBasicMaterial({ map: obstacleTexture });
     
     const obstacle1 = new THREE.Mesh(obstacleGeometry, obstacleMaterial);
