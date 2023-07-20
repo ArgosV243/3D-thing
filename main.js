@@ -17,10 +17,10 @@ function main() {
     return needResize;
   }
 
-  const fov = 45;
+  const fov = 50;
   const aspect = window.innerWidth / window.innerHeight; // window aspect ratio
   const near = 0.1;
-  const far = 100;
+  const far = 200;
   const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
   camera.position.set(0, 1, 10); // Y-axis movement
 
@@ -137,7 +137,7 @@ function main() {
     });
     world.addContactMaterial(cubeFloorContact);
 
-    const moveSpeed = 2.0;
+    const moveSpeed = 5.0;
     const jumpForce = 5;
     const moveVector = new THREE.Vector3();
     const jumpVector = new THREE.Vector3(0, jumpForce, 0);
